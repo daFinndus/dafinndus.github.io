@@ -55,15 +55,6 @@ export const writeups: Writeup[] = [
     ["nfs", "olivetin"],
   ],
   [
-    "devhub",
-    "DevHub",
-    "2026-06-04",
-    "DevHub is a medium Linux machine, that I totally forgot to make a writeup about.",
-    "Linux",
-    "Medium",
-    ["linux"],
-  ],
-  [
     "silentium",
     "Silentium",
     "2026-04-16",
