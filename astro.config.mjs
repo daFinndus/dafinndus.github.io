@@ -3,5 +3,5 @@ import mdx from "@astrojs/mdx";
 
 export default defineConfig({
   integrations: [mdx()],
-  site: "https://finnlucajensen.vercel.app",
+  site: "https://dafinndus.github.io",
 });
