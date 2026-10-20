@@ -1,6 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
+
 import { projects } from "../data/projects";
+
 const categoryFor = (project: (typeof projects)[number]) => project.personal ? "Personal" : ["IoT Smart Farm", "Working with Furhat"].includes(project.name) ? "Work" : "University";
 ---
 
@@ -30,6 +32,7 @@ const categoryFor = (project: (typeof projects)[number]) => project.personal ? "
     const empty = document.querySelector<HTMLElement>("[data-project-empty]");
     const sortButtons = [...(root?.querySelectorAll<HTMLButtonElement>("[data-project-sort]") ?? [])];
     const list = document.querySelector<HTMLElement>("[data-project-list]");
+
     const sortCards = () => {
       const direction = sortButtons.find((button) => button.classList.contains("primary"))?.dataset.projectSort === "oldest" ? 1 : -1;
       [...cards].sort((a, b) => direction * (Number(b.dataset.date) - Number(a.dataset.date))).forEach((card) => list?.append(card));
@@ -52,7 +55,6 @@ const categoryFor = (project: (typeof projects)[number]) => project.personal ? "
       sortButtons.forEach((item) => item.classList.toggle("primary", item === button));
       sortCards();
     }));
-
     update();
     sortCards();
   </script>

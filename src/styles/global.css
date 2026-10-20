@@ -630,6 +630,18 @@ h1 {
   margin: 0.2rem 0;
 }
 
+.icon-muted {
+  display: none;
+}
+
+[data-muted="true"] .icon-volume {
+  display: none;
+}
+
+[data-muted="true"] .icon-muted {
+  display: block;
+}
+
 @media (min-width: 1316px) and (max-width: 1815px) {
   .home-container {
     max-width: 900px;
