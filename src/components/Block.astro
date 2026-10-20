@@ -1,0 +1,19 @@
+---
+const { content, language } = Astro.props;
+---
+<div class="code-block">
+  <div class="code-block-header"><div class="meta">{language}</div><button class="copy-code" type="button" data-copy-code>Copy</button></div>
+  <pre><code>{content}</code></pre>
+</div>
+<script>
+  document.querySelectorAll<HTMLButtonElement>("[data-copy-code]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const code = button.closest(".code-block")?.querySelector("code")?.textContent;
+      if (!code) return;
+      await navigator.clipboard.writeText(code);
+      const original = button.textContent;
+      button.textContent = "Copied";
+      setTimeout(() => { button.textContent = original; }, 1500);
+    });
+  });
+</script>

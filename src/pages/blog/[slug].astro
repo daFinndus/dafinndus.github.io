@@ -1,0 +1,26 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { writeups } from "../../data/writeups";
+
+export function getStaticPaths() {
+  return writeups.map((writeup) => ({ params: { slug: writeup.slug } }));
+}
+
+const { slug } = Astro.params;
+const writeup = writeups.find((item) => item.slug === slug);
+if (!writeup) return Astro.redirect("/404");
+const modules = import.meta.glob("../../content/writeups/*.mdx", { eager: true });
+const module = modules[`../../content/writeups/${writeup.slug}.mdx`] as { default: any };
+const Content = module.default;
+---
+<Layout title={writeup.title} description={writeup.description}>
+  <div class="container">
+    <article class="prose">
+      <a class="meta" href="/blog">← All writeups</a>
+      <div class="eyebrow" style="margin-top: 3rem">{writeup.system} · {writeup.difficulty} · {writeup.date}</div>
+      <h1>{writeup.title}</h1>
+      <p class="lede">{writeup.description}</p>
+      <Content />
+    </article>
+  </div>
+</Layout>

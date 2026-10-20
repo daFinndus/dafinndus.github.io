@@ -1,0 +1,59 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { projects } from "../data/projects";
+const categoryFor = (project: (typeof projects)[number]) => project.personal ? "Personal" : ["IoT Smart Farm", "Working with Furhat"].includes(project.name) ? "Work" : "University";
+---
+
+<Layout title="Projects">
+  <div class="container">
+    <div class="filters" data-project-filters>
+      <input type="search" placeholder="Search projects, skills, categories, Source or Demo…" aria-label="Search projects, skills, categories, Source or Demo" data-project-search />
+      <button class="button primary" type="button" data-project-sort="latest">Sort latest</button>
+      <button class="button" type="button" data-project-sort="oldest">Sort oldest</button>
+    </div>
+    <div class="grid" data-project-list>
+      {projects.map((project) => <article class="card project-card" data-project data-date={project.date.getTime()} data-search-value={`${project.name} ${project.description} ${project.skills.join(" ")} ${categoryFor(project)} ${categoryFor(project) === "University" ? "uni university academic" : ""} ${categoryFor(project) === "Work" ? "work employment" : ""} ${project.personal ? "personal" : ""} ${project.url ? "source github repository" : ""} ${project.demo ? "demo live" : ""} ${project.url ?? ""} ${project.demo ?? ""}`}>
+        <img class="project-image" src={project.src} alt={project.alt} width={project.width} height={project.height} loading="lazy" />
+        <div class="meta">{categoryFor(project)} · {project.date.toLocaleDateString("en-CA")}</div><h3>{project.name}</h3><p>{project.description}</p>
+        <div class="tags">{project.skills.map((skill) => <span class="tag">{skill}</span>)}</div>
+        <div class="actions project-links">
+          {project.url ? <a class="button available" href={project.url} target="_blank" rel="noreferrer">Source</a> : <span class="button unavailable" aria-disabled="true">Source</span>}
+          {project.demo ? <a class="button available" href={project.demo} target="_blank" rel="noreferrer">Demo</a> : <span class="button unavailable" aria-disabled="true">Demo</span>}
+        </div>
+      </article>)}
+    </div>
+    <p class="lede" data-project-empty hidden>No projects match those filters.</p>
+  </div>
+  <script>
+    const root = document.querySelector<HTMLElement>("[data-project-filters]");
+    const cards = [...document.querySelectorAll<HTMLElement>("[data-project]")];
+    const empty = document.querySelector<HTMLElement>("[data-project-empty]");
+    const sortButtons = [...(root?.querySelectorAll<HTMLButtonElement>("[data-project-sort]") ?? [])];
+    const list = document.querySelector<HTMLElement>("[data-project-list]");
+    const sortCards = () => {
+      const direction = sortButtons.find((button) => button.classList.contains("primary"))?.dataset.projectSort === "oldest" ? 1 : -1;
+      [...cards].sort((a, b) => direction * (Number(b.dataset.date) - Number(a.dataset.date))).forEach((card) => list?.append(card));
+    };
+
+    const update = () => {
+      const query = root?.querySelector<HTMLInputElement>("[data-project-search]")?.value.toLowerCase() ?? "";
+      let visible = 0;
+      cards.forEach((card) => {
+        const matches = card.dataset.searchValue?.toLowerCase().includes(query);
+        card.toggleAttribute("hidden", !matches);
+        if (matches) visible++;
+      });
+
+      empty?.toggleAttribute("hidden", visible !== 0);
+    };
+
+    root?.addEventListener("input", update);
+    sortButtons.forEach((button) => button.addEventListener("click", () => {
+      sortButtons.forEach((item) => item.classList.toggle("primary", item === button));
+      sortCards();
+    }));
+
+    update();
+    sortCards();
+  </script>
+</Layout>

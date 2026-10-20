@@ -1,0 +1,49 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { writeups } from "../../data/writeups";
+---
+<Layout title="Writing">
+  <div class="container">
+    <header class="page-header"><div class="eyebrow">Field notes</div><h1>Writeups</h1><p>Security notes from machines, experiments, and the occasional rabbit hole. Open a writeup to read the full, focused page.</p></header>
+    <div class="filters" data-writeup-filters>
+      <input type="search" placeholder="Search machines, Linux/Windows, tags or Easy/Medium…" aria-label="Search machines, operating systems, tags or difficulty" data-search />
+      <button class="button primary" type="button" data-writeup-sort="latest">Sort latest</button>
+      <button class="button" type="button" data-writeup-sort="oldest">Sort oldest</button>
+    </div>
+    <div class="writeups" data-writeup-list>
+      {writeups.map((writeup) => <article class="card writeup-card" data-writeup data-date={writeup.date} data-search-value={`${writeup.title} ${writeup.system} ${writeup.difficulty} ${writeup.keywords.join(" ")} ${writeup.description}`}>
+        <img class="writeup-image" src={`https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/${writeup.slug}.png`} alt={`${writeup.title} machine`} loading="lazy" />
+        <div><div class="meta">{writeup.system} · {writeup.difficulty} · {writeup.date}</div><h3>{writeup.title}</h3><p>{writeup.description}</p><div class="tags">{writeup.keywords.map((keyword) => <span class="tag">{keyword}</span>)}</div></div><a class="button primary" href={`/blog/${writeup.slug}`}>Read writeup</a>
+      </article>)}
+    </div>
+    <p class="lede" data-empty hidden>No writeups match those filters.</p>
+  </div>
+  <script>
+    const root = document.querySelector<HTMLElement>("[data-writeup-filters]");
+    const cards = [...document.querySelectorAll<HTMLElement>("[data-writeup]")];
+    const empty = document.querySelector<HTMLElement>("[data-empty]");
+    const sortButtons = [...(root?.querySelectorAll<HTMLButtonElement>("[data-writeup-sort]") ?? [])];
+    const list = document.querySelector<HTMLElement>("[data-writeup-list]");
+    const sortCards = () => {
+      const direction = sortButtons.find((button) => button.classList.contains("primary"))?.dataset.writeupSort === "oldest" ? 1 : -1;
+      [...cards].sort((a, b) => direction * ((b.dataset.date ?? "").localeCompare(a.dataset.date ?? ""))).forEach((card) => list?.append(card));
+    };
+    const update = () => {
+      const query = root?.querySelector<HTMLInputElement>("[data-search]")?.value.toLowerCase() ?? "";
+      let visible = 0;
+      cards.forEach((card) => {
+        const matches = card.dataset.searchValue?.toLowerCase().includes(query);
+        card.toggleAttribute("hidden", !matches);
+        if (matches) visible++;
+      });
+      if (empty) empty.toggleAttribute("hidden", visible !== 0);
+    };
+    root?.addEventListener("input", update);
+    sortButtons.forEach((button) => button.addEventListener("click", () => {
+      sortButtons.forEach((item) => item.classList.toggle("primary", item === button));
+      sortCards();
+    }));
+    update();
+    sortCards();
+  </script>
+</Layout>

@@ -1,0 +1,56 @@
+---
+import "../styles/global.css";
+---
+
+<html lang="en">
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width" /><title>404 · Finn Luca Jensen</title></head>
+  <body class="error-page">
+    <div class="error-controls">
+      <a class="home-control" href="/" aria-label="Return home">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8M5 10v10h14V10M9 20v-6h6v6" /></svg>
+      </a>
+      <button class="home-control" type="button" data-audio-toggle aria-label="Toggle audio">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5ZM15 9.5a4 4 0 0 1 0 5M18 7a7 7 0 0 1 0 10" /></svg>
+      </button>
+    </div>
+    <main class="error-stage">
+      <div class="error-video-wrap">
+        <video data-error-video class="error-video" autoplay muted playsinline></video>
+        <div class="error-number" data-error-number>404</div>
+      </div>
+    </main>
+    <audio data-error-audio preload="auto"></audio>
+    <script>
+      const video = document.querySelector<HTMLVideoElement>("[data-error-video]");
+      const number = document.querySelector<HTMLElement>("[data-error-number]");
+      const player = document.querySelector<HTMLAudioElement>("[data-error-audio]");
+      const audioButton = document.querySelector<HTMLButtonElement>("[data-audio-toggle]");
+      const videos = Array.from({ length: 46 }, (_, index) => `/videos/cyberpunk_clip_${String(index).padStart(2, "0")}.mp4`);
+      const audio = ["/audios/been_good_to_know_ya.mp3", "/audios/crustpunk.mp3", "/audios/phantom_liberty.mp3"];
+      if (!video || !player) throw new Error("Error page media controls are unavailable.");
+      const shuffled = [...videos].sort(() => Math.random() - 0.5);
+      let videoIndex = 0;
+      let audioIndex = Math.floor(Math.random() * audio.length);
+      let muted = true;
+      const nextVideo = () => {
+        video.src = shuffled[videoIndex++ % shuffled.length];
+        number?.classList.add("error-fade");
+        video?.load();
+        video?.play().catch(() => {});
+      };
+      nextVideo();
+      video?.addEventListener("canplay", () => number?.classList.remove("error-fade"));
+      video?.addEventListener("ended", nextVideo);
+      player.src = audio[audioIndex];
+      player.volume = 0.1;
+      player.loop = true;
+      player.play().catch(() => {});
+      audioButton?.addEventListener("click", () => {
+        muted = !muted;
+        player.muted = muted;
+        audioButton.setAttribute("aria-label", muted ? "Enable audio" : "Mute audio");
+        audioButton.dataset.muted = String(muted);
+      });
+    </script>
+  </body>
+</html>

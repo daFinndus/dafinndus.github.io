@@ -1,0 +1,68 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { writeups } from "../data/writeups";
+import { projects } from "../data/projects";
+---
+
+<Layout title="Home" description="Finn Luca Jensen — developer and cybersecurity student">
+  <div class="home-container">
+    <section class="home-dashboard" aria-label="About and portfolio overview">
+      <div class="dashboard-column">
+        <article class="card dashboard-card">
+          <div class="about-content">
+            <img class="about-image" src="https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Miscellaneous/pose.jpg" alt="Finn Luca Jensen" />
+            <div>
+              <h3>Finn Luca “daFinndus” Jensen</h3>
+              <p class="identity" data-identity>I am a student.</p>
+            </div>
+          </div>
+          <div class="tags"><span class="tag">German & English</span><span class="tag">Kiel</span><span class="tag">Student</span><span class="tag">Guitar</span></div>
+          <div class="actions">
+            <a class="button primary" href="mailto:finnlucajensen@proton.me">Email</a>
+            <a class="button" href="https://github.com/daFinndus" target="_blank" rel="noreferrer">GitHub</a>
+          </div>
+        </article>
+        <article class="card dashboard-card">
+          <div class="meta">Applications</div>
+          <h3>Apps, systems, and languages</h3>
+          <p>Web development, Python, Bash, Linux, Docker, Proxmox, Node.js, and MongoDB.</p>
+          <div class="tags"><span class="tag">React</span><span class="tag">Python</span><span class="tag">Linux</span><span class="tag">Docker</span></div>
+        </article>
+      </div>
+      <article class="card dashboard-card dashboard-toolkit">
+        <div class="meta">Toolkit</div>
+        <h3>Things I already know and use</h3>
+        <p>Security tools and techniques I use while learning and working on systems.</p>
+        <div class="tags"><span class="tag">Reconnaissance</span><span class="tag">Fuzzing</span><span class="tag">Exploitation</span><span class="tag">Hash cracking</span><span class="tag">Post-exploitation</span><span class="tag">Networking</span></div>
+        <div class="actions">
+          <a class="button primary" href="/cv">View my CV</a>
+          <a class="button" href="https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Miscellaneous/student-transcript.pdf" target="_blank" rel="noreferrer">HTB progress</a>
+        </div>
+      </article>
+      <div class="dashboard-column">
+        <article class="card dashboard-card dashboard-projects">
+          <div class="meta">Projects</div>
+          <h3>Things I’ve been working on</h3>
+          <p>{projects.length} projects across security, automation, university, and homelab work.</p>
+          <div class="actions"><a class="button primary" href="/projects">View all projects</a></div>
+        </article>
+        <article class="card dashboard-card dashboard-blog">
+          <div class="meta">Read my blog</div>
+          <h3>Writeups and field notes</h3>
+          <p>{writeups.length} machine writeups covering enumeration, exploitation, and privilege escalation.</p>
+          <div class="actions"><a class="button primary" href="/blog">Let’s go to the blog</a></div>
+        </article>
+      </div>
+    </section>
+  </div>
+  <script>
+    const identities = ["student", "cybersecurity enthusiast", "developer"];
+    const identity = document.querySelector<HTMLElement>("[data-identity]");
+    let identityIndex = 0;
+
+    setInterval(() => {
+      identityIndex = (identityIndex + 1) % identities.length;
+      if (identity) identity.textContent = `I am a ${identities[identityIndex]}.`;
+    }, 5000);
+  </script>
+</Layout>
