@@ -189,7 +189,7 @@ h3 {
   border-radius: 0.5rem;
   background: var(--bg);
   border-color: var(--bg);
-  color: #fff;
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -267,18 +267,9 @@ h3 {
   overflow: hidden;
 }
 
-.error-controls {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  z-index: 2;
-  display: flex;
-  gap: 0.5rem;
-}
-
 .error-stage {
   display: grid;
-  min-height: 100vh;
+  min-height: calc(100vh - 5rem);
   place-items: center;
 }
 
@@ -388,6 +379,8 @@ h3 {
 .writeups {
   display: grid;
   gap: 0.8rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .writeup-card {
@@ -396,6 +389,7 @@ h3 {
   gap: 1rem;
   align-items: center;
   width: min(100%, 624px);
+  min-width: 0;
 }
 
 .project-card {
@@ -410,6 +404,20 @@ h3 {
 .writeup-content {
   grid-column: 2;
   grid-row: 1 / span 2;
+  width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.writeup-content .meta,
+.writeup-content h3,
+.writeup-content p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.writeup-content .tags {
+  min-width: 0;
 }
 
 .writeup-card .button {
@@ -686,25 +694,6 @@ h1 {
     grid-row: auto;
   }
 
-  .writeup-card {
-    grid-template-columns: 1fr;
-  }
-
-  .writeup-image {
-    grid-row: auto;
-  }
-
-  .writeup-card .button {
-    grid-column: auto;
-    grid-row: 2;
-    justify-self: start;
-  }
-
-  .writeup-content {
-    grid-column: auto;
-    grid-row: 3;
-  }
-
   .nav {
     align-items: center;
   }
@@ -721,5 +710,31 @@ h1 {
   .about-image {
     width: 5.5rem;
     height: 5.5rem;
+  }
+}
+
+@media (max-width: 495px) {
+  .writeup-card {
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 456px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .writeup-image {
+    display: none;
+  }
+
+  .writeup-content {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .writeup-card .button {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: stretch;
+    width: 100%;
   }
 }
