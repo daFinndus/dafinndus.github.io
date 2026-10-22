@@ -13,13 +13,14 @@ const modules = import.meta.glob("../../content/writeups/*.mdx", { eager: true }
 const module = modules[`../../content/writeups/${writeup.slug}.mdx`] as { default: any };
 const Content = module.default;
 ---
+
 <Layout title={writeup.title} description={writeup.description}>
   <div class="container">
     <article class="prose">
-      <a class="meta" href="/blog">← All writeups</a>
-      <div class="eyebrow" style="margin-top: 3rem">{writeup.system} · {writeup.difficulty} · {writeup.date}</div>
-      <h1>{writeup.title}</h1>
-      <p class="lede">{writeup.description}</p>
+      <a class="meta" href="/blog">Go back</a>
+      <div class="meta" style="margin-top: 3rem">{writeup.system} · {writeup.difficulty} · {writeup.date}</div>
+      <h1 style="margin-top: 8px">{writeup.title}</h1>
+      <p>{writeup.description}</p>
       <Content />
     </article>
   </div>

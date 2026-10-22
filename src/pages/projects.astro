@@ -6,6 +6,59 @@ import { projects } from "../data/projects";
 const sortedProjects = [...projects].sort((a, b) => b.date.getTime() - a.date.getTime());
 ---
 
+<style>
+.project-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.project-image {
+  display: block;
+  width: 100%;
+  height: 152px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+project-card {
+  min-width: 0;
+}
+
+.project-links .button {
+  flex: 1;
+}
+
+.project-links {
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.project-links .button {
+  background: #222;
+  color: #fff;
+  border-color: #222;
+  border-radius: 0.5rem;
+}
+
+.project-links .available {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.project-links .available:hover {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--accent)
+}
+
+.project-links .unavailable {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+</style>
+
 <Layout title="Projects">
   <div class="container">
     <div class="grid" data-project-list>
@@ -19,26 +72,5 @@ const sortedProjects = [...projects].sort((a, b) => b.date.getTime() - a.date.ge
         </div>
       </article>)}
     </div>
-    <p class="lede" data-project-empty hidden>No projects match those filters.</p>
   </div>
-  <script>
-    const root = document.querySelector<HTMLElement>("[data-project-filters]");
-    const cards = [...document.querySelectorAll<HTMLElement>("[data-project]")];
-    const empty = document.querySelector<HTMLElement>("[data-project-empty]");
-
-    const update = () => {
-      const query = root?.querySelector<HTMLInputElement>("[data-project-search]")?.value.toLowerCase() ?? "";
-      let visible = 0;
-      cards.forEach((card) => {
-        const matches = card.dataset.searchValue?.toLowerCase().includes(query);
-        card.toggleAttribute("hidden", !matches);
-        if (matches) visible++;
-      });
-
-      empty?.toggleAttribute("hidden", visible !== 0);
-    };
-
-    root?.addEventListener("input", update);
-    update();
-  </script>
 </Layout>
