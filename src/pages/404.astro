@@ -2,12 +2,114 @@
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="Not found">
-    <div class="container">
-        <section class="hero">
-            <div class="eyebrow">404</div>
-            <h1>That page is missing.</h1>
-            <a class="button primary" href="/">Back home</a>
-        </section>
-    </div>
+<style>
+.hero {
+  padding: 7rem 0 6rem;
+  max-width: 850px;
+}
+
+.error-page {
+  min-height: 100vh;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.error-stage {
+  display: grid;
+  min-height: calc(100vh - 5rem);
+  place-items: center;
+}
+
+.error-video-wrap {
+  position: relative;
+  width: min(100%, 1100px);
+  height: 75vh;
+  padding: 2rem;
+}
+
+.error-video {
+  width: 100%;
+  height: 100%;
+  border-radius: 1rem;
+  object-fit: cover;
+  filter: blur(2px) brightness(0.6);
+  opacity: 1;
+  transition: opacity 0.5s;
+}
+
+.error-number {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: var(--bg);
+  font-size: clamp(10rem, 25vw, 25rem);
+  font-weight: 800;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  text-shadow: 0 1rem 2rem rgb(0 0 0 / 0.45);
+  transition: color 0.5s;
+}
+
+.error-number.error-fade {
+  color: var(--text);
+}
+
+@media (max-width: 1315px) {
+  .hero {
+    padding: 5rem 0 4rem;
+  }
+}
+</style>
+
+<Layout title="404">
+    <main class="error-stage">
+      <div class="error-video-wrap">
+        <video data-error-video class="error-video" autoplay muted playsinline></video>
+        <div class="error-number" data-error-number>404</div>
+      </div>
+    </main>
+    <audio data-error-audio preload="auto"></audio>
+    <script>
+      const video = document.querySelector<HTMLVideoElement>("[data-error-video]");
+      const number = document.querySelector<HTMLElement>("[data-error-number]");
+      const player = document.querySelector<HTMLAudioElement>("[data-error-audio]");
+      const audioButton = document.querySelector<HTMLButtonElement>("[data-audio-toggle]");
+
+      // Fetch videos from public dir
+      const videos = Array.from({ length: 46 }, (_, index) => `/videos/cyberpunk_clip_${String(index).padStart(2, "0")}.mp4`);
+      const audio = ["/audios/been_good_to_know_ya.mp3", "/audios/crustpunk.mp3", "/audios/phantom_liberty.mp3"];
+
+      if (!video || !player) throw new Error("Error page media controls are unavailable.");
+
+      const shuffled = [...videos].sort(() => Math.random() - 0.5);
+
+      let videoIndex = 0;
+      let audioIndex = Math.floor(Math.random() * audio.length);
+      let muted = true;
+
+      const nextVideo = () => {
+        video.src = shuffled[videoIndex++ % shuffled.length];
+        number?.classList.add("error-fade");
+        video?.load();
+        video?.play().catch(() => {});
+      };
+
+      nextVideo();
+
+      video?.addEventListener("canplay", () => number?.classList.remove("error-fade"));
+      video?.addEventListener("ended", nextVideo);
+
+      player.src = audio[audioIndex];
+      player.volume = 0.1;
+      player.loop = true;
+      player.muted = muted;
+      player.play().catch(() => {});
+
+      audioButton?.addEventListener("click", () => {
+        muted = !muted;
+        player.muted = muted;
+        audioButton.setAttribute("aria-label", muted ? "Enable audio" : "Mute audio");
+        audioButton.dataset.muted = String(muted);
+      });
+    </script>
 </Layout>

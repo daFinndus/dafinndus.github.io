@@ -59,6 +59,23 @@ const currentPath = Astro.url.pathname;
   color: var(--text);
 }
 
+.site-header {
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.icon-muted {
+  display: none;
+}
+
+[data-muted="true"] .icon-volume {
+  display: none;
+}
+
+[data-muted="true"] .icon-muted {
+  display: block;
+}
+
 @media (max-width: 495px) {
   .nav {
     flex-direction: column;
@@ -94,7 +111,7 @@ const currentPath = Astro.url.pathname;
           <a class="nav-control" href="/" aria-label="Return home">
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8M5 10v10h14V10M9 20v-6h6v6" /></svg>
           </a>}
-          {currentPath === "/err" &&
+          {currentPath === "/404" &&
           <button class="nav-control" type="button" data-audio-toggle data-muted="true" aria-label="Enable audio">
             <svg class="icon-volume" aria-hidden="true" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5ZM15 9.5a4 4 0 0 1 0 5M18 7a7 7 0 0 1 0 10" /></svg>
             <svg class="icon-muted" aria-hidden="true" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4M16 9l6 6M22 9l-6 6" /></svg>
@@ -102,7 +119,7 @@ const currentPath = Astro.url.pathname;
           <a class="nav-control" href="/clock" aria-label="Open clock">
             <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
           </a>
-          <a class="nav-control" href="/err" aria-label="Open error page">
+          <a class="nav-control" href="/404" aria-label="Open error page">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 2.8 19h18.4L12 3Z" /><path d="M12 9v4M12 16h.01" /></svg>
           </a>
         </div>

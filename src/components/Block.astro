@@ -3,10 +3,34 @@ const { content, language } = Astro.props;
 ---
 
 <style>
+.prose code {
+  font-family: "JetBrains Mono NF", "JetBrains Mono", monospace;
+  color: var(--text);
+}
+
+.code-block pre {
+  font-family: "JetBrains Mono NF", "JetBrains Mono", monospace;
+}
+
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.copy-code {
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+}
+
 .copy-code {
   background: none;
   border: none;
-  color: var(--text);
+  color: var(--text-ink);
+  font: 0.75rem "JetBrains Mono";
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 </style>
 

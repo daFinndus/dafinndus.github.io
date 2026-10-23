@@ -8,7 +8,9 @@ export function getStaticPaths() {
 
 const { slug } = Astro.params;
 const writeup = writeups.find((item) => item.slug === slug);
+
 if (!writeup) return Astro.redirect("/404");
+
 const modules = import.meta.glob("../../content/writeups/*.mdx", { eager: true });
 const module = modules[`../../content/writeups/${writeup.slug}.mdx`] as { default: any };
 const Content = module.default;

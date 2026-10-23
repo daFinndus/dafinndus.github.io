@@ -2,6 +2,21 @@
 import Layout from "../layouts/Layout.astro";
 ---
 
+<style>
+.clock-page {
+  padding: 8rem 0;
+  text-align: center;
+}
+
+.clock {
+  margin: 1rem 0 2rem;
+  font:
+    clamp(4rem, 15vw, 10rem) "Geist",
+    sans-serif;
+  letter-spacing: -0.08em;
+}
+</style>
+
 <Layout title="Clock">
   <div class="container clock-page"><div class="eyebrow">Local time</div><div class="clock" data-clock>--:--:--</div></div>
   <script>

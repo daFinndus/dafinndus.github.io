@@ -3,6 +3,34 @@ import Layout from "../layouts/Layout.astro";
 import { education, experience } from "../data/cv";
 ---
 
+<style>
+.timeline {
+  border-left: 1px solid var(--line);
+  margin: 2rem 0;
+}
+
+.timeline-item {
+  position: relative;
+  padding: 0 0 2.5rem 2rem;
+}
+
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--accent);
+  left: -0.3rem;
+  top: 0.35rem;
+}
+
+.timeline-item p {
+  color: var(--muted);
+  margin: 0.2rem 0;
+}
+</style>
+
 <Layout title="CV">
   <div class="container">
     <section class="section"><div class="eyebrow">Education</div><h2>Learning the foundations.</h2><div class="timeline">{education.map((item) => <article class="timeline-item"><div class="meta">{item.period}</div><h3>{item.title}</h3><p><strong>{item.place}</strong></p><p>{item.detail}</p></article>)}</div></section>

@@ -5,9 +5,119 @@ import { writeups } from "../../data/writeups";
 const sortedWriteups = [...writeups].sort((a, b) => b.date.localeCompare(a.date));
 ---
 
+<style>
+.page-header {
+  padding: 4.5rem 0 2rem;
+  max-width: 720px;
+}
+
+.page-header p {
+  color: var(--muted);
+}
+
+.writeups {
+  display: grid;
+  gap: 0.8rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.writeup-title {
+    font-size: 96px;
+}
+
+.writeup-card {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 1rem;
+  align-items: center;
+  width: min(100%, 624px);
+  min-width: 0;
+}
+
+.writeup-content {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.writeup-content .meta,
+.writeup-content h3,
+.writeup-content p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.writeup-content .tags {
+  min-width: 0;
+}
+
+.writeup-card .button {
+  white-space: nowrap;
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: center;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.writeup-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+.writeup-image {
+  width: 76px;
+  height: 76px;
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: center;
+}
+
+@media (max-width: 496px) {
+  .writeup-title {
+      font-size: 20vw;
+  }
+
+  .writeup-card {
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 456px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .writeup-image {
+    display: none;
+  }
+
+  .writeup-content {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .writeup-card .button {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+</style>
+
 <Layout title="Writing">
   <div class="container">
-    <header class="page-header"><div class="eyebrow">Field notes</div><h1>Writeups</h1><p>Security notes from machines, experiments, and the occasional rabbit hole. Open a writeup to read the full, focused page.</p></header>
+    <header class="page-header">
+        <div class="eyebrow">Field notes</div>
+        <h1 class="writeup-title">Writeups</h1>
+        <p style="width: min(100%, 512px)">Security notes from machines, experiments, and the occasional rabbit hole. Open a writeup to read the full, focused page.</p>
+    </header>
     <div class="writeups" data-writeup-list>
       {sortedWriteups.map((writeup) => <article class="card writeup-card" data-writeup data-date={writeup.date} data-search-value={`${writeup.title} ${writeup.system} ${writeup.difficulty} ${writeup.keywords.join(" ")} ${writeup.description}`}>
         <img class="writeup-image" src={`https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/${writeup.slug}.png`} alt={`${writeup.title} machine`} loading="lazy" />
