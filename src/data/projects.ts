@@ -16,7 +16,7 @@ export const projects: Project[] = [
   {
     name: "Bachelorthesis",
     date: new Date("2026-06-18"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/thesis.png",
+    src: "/images/projects/thesis.png",
     alt: "This is a picture out of my bachelor thesis lab.",
     width: 565,
     height: 840,
@@ -28,7 +28,7 @@ export const projects: Project[] = [
   {
     name: "Rapid Prototyping",
     date: new Date("2024-12-19"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/rapid_prototyping.png",
+    src: "/images/projects/rapid_prototyping.png",
     alt: "This is a video about a self-made coin sorting machine.",
     width: 1920,
     height: 1080,
@@ -40,7 +40,7 @@ export const projects: Project[] = [
   {
     name: "Reconnoisseur",
     date: new Date("2026-03-08"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/reconnoisseur.png",
+    src: "/images/projects/reconnoisseur.png",
     alt: "This displays a code output of the reconnaissance program",
     width: 1920,
     height: 1032,
@@ -53,7 +53,7 @@ export const projects: Project[] = [
   {
     name: "Homeserver",
     date: new Date("2026-01-12"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/homeserver.jpeg",
+    src: "/images/projects/homeserver.jpeg",
     alt: "A bmax mini computer and an external SSD",
     width: 2048,
     height: 2048,
@@ -65,7 +65,7 @@ export const projects: Project[] = [
   {
     name: "IoT Smart Farm",
     date: new Date("2025-12-15"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/smart_farm.jpeg",
+    src: "/images/projects/smart_farm.jpeg",
     alt: "IoT Smart Farm",
     width: 819,
     height: 614,
@@ -77,7 +77,7 @@ export const projects: Project[] = [
   {
     name: "Portfolio",
     date: new Date("2024-12-03"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/portfolio.png",
+    src: "/images/projects/portfolio.png",
     alt: "My Portfolio",
     width: 1920,
     height: 995,
@@ -91,7 +91,7 @@ export const projects: Project[] = [
   {
     name: "Beerpong Tracker",
     date: new Date("2024-04-12"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/beerpong_tracker.webp",
+    src: "/images/projects/beerpong_tracker.webp",
     alt: "Beerpong Tracker",
     width: 630,
     height: 594,
@@ -104,7 +104,7 @@ export const projects: Project[] = [
   {
     name: "Voice Assistant",
     date: new Date("2023-10-19"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/voice_assistant.webp",
+    src: "/images/projects/voice_assistant.webp",
     alt: "Voice Assistant",
     width: 450,
     height: 450,
@@ -118,7 +118,7 @@ export const projects: Project[] = [
   {
     name: "Key Guardian",
     date: new Date("2023-08-10"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/key_guardian.webp",
+    src: "/images/projects/key_guardian.webp",
     alt: "Key Guardian",
     width: 802,
     height: 632,
@@ -131,7 +131,7 @@ export const projects: Project[] = [
   {
     name: "Honeypot by Cowrie",
     date: new Date("2025-06-19"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/cowrie.png",
+    src: "/images/projects/cowrie.png",
     alt: "Cowrie Honeypot",
     width: 317,
     height: 261,
@@ -144,7 +144,7 @@ export const projects: Project[] = [
   {
     name: "Arch and Hyprland Ricing",
     date: new Date("2025-04-24"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/quattro.png",
+    src: "/images/projects/quattro.png",
     alt: "This is my hyprland main theme.",
     width: 1920,
     height: 1080,
@@ -157,7 +157,7 @@ export const projects: Project[] = [
   {
     name: "Working with Furhat",
     date: new Date("2025-03-15"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/furhat.jpeg",
+    src: "/images/projects/furhat.jpeg",
     alt: "Me and the Furhat robot",
     width: 434,
     height: 250,
@@ -171,7 +171,7 @@ export const projects: Project[] = [
   {
     name: "DiveVR",
     date: new Date("2025-01-17"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/dive_vr.png",
+    src: "/images/projects/dive_vr.png",
     alt: "DiveVR",
     width: 756,
     height: 406,
@@ -183,7 +183,7 @@ export const projects: Project[] = [
   {
     name: "Bowl-A-Rama",
     date: new Date("2024-08-17"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/bowl_a_rama.png",
+    src: "/images/projects/bowl_a_rama.png",
     alt: "Bowl-A-Rama",
     width: 696,
     height: 374,
@@ -195,7 +195,7 @@ export const projects: Project[] = [
   {
     name: "EasyChat",
     date: new Date("2023-08-16"),
-    src: "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Projects/easy_chat.jpg",
+    src: "/images/projects/easy_chat.jpg",
     alt: "EasyChat",
     width: 800,
     height: 450,

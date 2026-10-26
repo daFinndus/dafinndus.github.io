@@ -120,7 +120,7 @@ const sortedWriteups = [...writeups].sort((a, b) => b.date.localeCompare(a.date)
     </header>
     <div class="writeups" data-writeup-list>
       {sortedWriteups.map((writeup) => <article class="card writeup-card" data-writeup data-date={writeup.date} data-search-value={`${writeup.title} ${writeup.system} ${writeup.difficulty} ${writeup.keywords.join(" ")} ${writeup.description}`}>
-        <img class="writeup-image" src={`https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/${writeup.slug}.png`} alt={`${writeup.title} machine`} loading="lazy" />
+        <img class="writeup-image" src={`/images/writeups/${writeup.slug}.png`} alt={`${writeup.title} machine`} loading="lazy" />
         <div class="writeup-content"><div class="meta">{writeup.system} · {writeup.difficulty} · {writeup.date}</div><h3>{writeup.title}</h3><p>{writeup.description}</p><div class="tags">{writeup.keywords.map((keyword) => <span class="tag">{keyword}</span>)}</div></div>
         <a class="button primary" href={`/blog/${writeup.slug}`}>Read writeup</a>
       </article>)}

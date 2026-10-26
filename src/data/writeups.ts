@@ -28,6 +28,15 @@ const makeWriteup = (
 
 export const writeups: Writeup[] = [
   [
+    "orion",
+    "Orion",
+    "2026-10-23",
+    "Orion is an easy Linux machine that focuses on trivial CVE exploitation.",
+    "Linux",
+    "Easy",
+    ["craftcms", "metasploit", "telnet"],
+  ],
+  [
     "stream",
     "Stream",
     "2026-10-16",

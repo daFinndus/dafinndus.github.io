@@ -3,7 +3,7 @@ import Code from "../../components/Code.astro";
 import Block from "../../components/Block.astro";
 import Marker from "../../components/Marker.astro";
 
-**Disclaimer**: The steps for this writeup are based on my notes and memory, so they might not be 100% accurate. Additionally, I have changed the flags for this writeup, so they won't match the ones on the machine.
+**Disclaimer**: This writeup is based on my notes and memory, so some intermediate steps may be incomplete. Replace the image paths below with the URLs or paths used by the portfolio before publishing. The flags have been omitted.
 
 Starting off with a <Code content="nmap" /> scan reveals two open ports:
 
@@ -12,7 +12,7 @@ Starting off with a <Code content="nmap" /> scan reveals two open ports:
 Browsing to port <Code content="80" /> reveals the VariaType website, a typography and variable font platform. The site offers a few pages including a tools section and a services section.
 
 <Bild
-  src="https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/variatype-website.png"
+  src="/images/writeups/variatype-website.png"
   alt="VariaType website"
   width="1920"
   height="1466"
@@ -66,7 +66,7 @@ Enumeration of the filesystem reveals credentials inside <Code content="auth.php
 Logging into the portal at <Code content="portal.variatype.htb" /> with those credentials grants access to a dashboard that allows viewing and downloading uploaded font files.
 
 <Bild
-  src="https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/variatype-porta.png"
+  src="/images/writeups/variatype-porta.png"
   alt="VariaType portal"
   width="1904"
   height="1080"

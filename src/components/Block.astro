@@ -16,7 +16,7 @@ const { content, language } = Astro.props;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  margin-bottom: -12px;
 }
 
 .copy-code {
@@ -35,7 +35,9 @@ const { content, language } = Astro.props;
 </style>
 
 <div class="code-block">
-  <div class="code-block-header"><div class="meta">{language}</div><button class="copy-code" type="button" data-copy-code>Copy</button></div>
+  <div class="code-block-header">
+      <div class="meta">{language}</div><button class="copy-code" type="button" data-copy-code>Copy</button>
+  </div>
   <pre><code>{content}</code></pre>
 </div>
 

@@ -3,7 +3,7 @@ import Code from "../../components/Code.astro";
 import Block from "../../components/Block.astro";
 import Marker from "../../components/Marker.astro";
 
-**Disclaimer**: This writeup is based on my notes and memory, so some intermediate steps may be incomplete. Replace the image paths below with the URLs or paths used by the portfolio before publishing. The flags have been omitted.
+**Disclaimer**: The steps for this writeup are based on my notes and memory, so they might not be 100% accurate. Additionally, I have changed the flags for this writeup, so they won't match the ones on the machine.
 
 Starting with a full TCP port scan and then running service detection against the discovered ports reveals four open ports:
 
@@ -49,7 +49,7 @@ Then I searched through the login pare further. Checking every component. Hoveri
 
 <Bild
   src={
-    "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/touch-nexion-dashboard.png"
+    "/images/writeups/touch-nexion-dashboard.png"
   }
   alt={"Nexion DeviceHub dashboard"}
   width={1918}
@@ -71,7 +71,7 @@ These credentials worked for RDP. Connecting with <Code content="xfreerdp3" /> o
 
 <Bild
   src={
-    "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/touch-self-checkin.png"
+    "/images/writeups/touch-self-checkin.png"
   }
   alt={"Self Check-In screen shown after connecting over RDP"}
   width={1901}
@@ -82,7 +82,7 @@ The kiosk was initially locked into the self-check-in application. I interacted 
 
 <Bild
   src={
-    "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/touch-passport.png"
+    "/images/writeups/touch-passport.png"
   }
   alt={"Self Check-In boarding-pass scanning screen"}
   width={1900}
@@ -93,7 +93,7 @@ Then I remembered the option to disable the scanner in the dashboard. When I tri
 
 <Bild
   src={
-    "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/touch-passport-error.png"
+    "/images/writeups/touch-passport-error.png"
   }
   alt={"Error prompt displayed after attempting to scan a pass"}
   width={642}
@@ -104,7 +104,7 @@ Following the link exposed a way out of the restricted kiosk workflow. From ther
 
 <Bild
   src={
-    "https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/touch-file-explorer.png"
+    "/images/writeups/touch-file-explorer.png"
   }
   alt={
     "Windows filesystem accessed through RDP, with cmd.exe shown in the file search"

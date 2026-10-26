@@ -3,7 +3,7 @@ import Code from "../../components/Code.astro";
 import Block from "../../components/Block.astro";
 import Marker from "../../components/Marker.astro";
 
-**Disclaimer**: The steps for this writeup are based on my notes and memory, so they might not be 100% accurate. Additionally, I have changed the flags for this writeup, so they won't match the ones on the machine.
+**Disclaimer**: This writeup is based on my notes and memory, so some intermediate steps may be incomplete. Replace the dashboard image path with the final URL or path used by the portfolio before publishing. The flags have been omitted.
 
 Starting off with a <Code content="nmap" /> scan. Two ports came back open:
 
@@ -14,7 +14,7 @@ Port <Code content="80" /> serves a static website with basically nothing intere
 VHost enumeration uncovered <Code content="staging.silentium.htb" />, running a <Code content="Flowise" /> instance. Added that to the hosts file and poked around.
 
 <Bild
-  src="https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/silentium-flowise.png"
+  src="/images/writeups/silentium-flowise.png"
   alt="The Flowise login page of staging.silentium.htb."
   width={797}
   height={439}
@@ -61,7 +61,7 @@ With a shell as <Code content="ben" /> on the host, I ran <Code content="ss -tln
 />
 
 <Bild
-  src="https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/silentium-gogs.png"
+  src="/images/writeups/silentium-gogs.png"
   alt="The Gogs login page on port 3001."
   width={1020}
   height={929}

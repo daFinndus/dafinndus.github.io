@@ -15,7 +15,7 @@ Starting off with a <Code content="nmap" /> scan. At first I only scanned the to
 Port <Code content="80" /> and <Code content="443" /> serve a pretty much useless static webpage. Nothing interesting there. Port <Code content="3552" /> is where things get interesting. It runs <Code content="Arcane 1.13.0" />, which is visible both on the login page footer and confirmed via the <Code content="/api/version" /> endpoint.
 
 <Bild
-  src="https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/kobold-arcane.png"
+  src="/images/writeups/kobold-arcane.png"
   alt="Arcane login page"
   width="1920"
   height="929"
@@ -52,7 +52,7 @@ I checked running services, listening ports, sudo permissions, nothing really st
 Port <Code content="8080" /> is forwarded via SSH and turns out to be the same <Code content="PrivateBin" /> instance as <Code content="bin.kobold.htb" />, running inside a Docker container.
 
 <Bild
-  src="https://s8lcpnzirhyz4bbt.public.blob.vercel-storage.com/Blogs/kobold-privatebin.png"
+  src="/images/writeups/kobold-privatebin.png"
   alt="PrivateBin running in Docker"
   width="1920"
   height="929"
