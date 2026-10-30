@@ -2,7 +2,7 @@
 import "../styles/global.css";
 
 const { title = "Finn Luca Jensen", description = "Portfolio of Finn Luca Jensen", showNav = true } = Astro.props;
-const currentPath = Astro.url.pathname;
+const currentPath =  Astro.url.pathname.replace(/\/$/, "") || "/"; // Remove trailing slashes, github issue
 ---
 
 <style>
