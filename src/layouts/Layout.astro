@@ -83,6 +83,10 @@ const currentPath = Astro.url.pathname;
 }
 </style>
 
+<script define:vars={{ currentPath }} is:inline>
+  console.log("Astro currentPath:", currentPath);
+</script>
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -99,7 +103,7 @@ const currentPath = Astro.url.pathname;
     </script>
     <title>{title}</title>
   </head>
-  <body class={currentPath === "/err" ? "error-page" : undefined}>
+  <body class={currentPath === "/404" ? "error-page" : undefined}>
     {showNav &&
     <header class="site-header">
       <nav class="nav container" aria-label="Main navigation">
