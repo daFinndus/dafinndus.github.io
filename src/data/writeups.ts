@@ -28,6 +28,15 @@ const makeWriteup = (
 
 export const writeups: Writeup[] = [
   [
+    "dutybound",
+    "DutyBound",
+    "2026-10-30",
+    "DutyBound is a medium Linux machine that is centered around SQL and process injection.",
+    "Linux",
+    "Medium",
+    ["postgresql", "process injection", "sql injection"],
+  ],
+  [
     "orion",
     "Orion",
     "2026-10-23",

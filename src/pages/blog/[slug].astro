@@ -17,12 +17,12 @@ const Content = module.default;
 ---
 
 <Layout title={writeup.title} description={writeup.description}>
-  <div class="container">
+    <div class="container" style="text-align: justify;">
     <article class="prose">
       <div class="meta" style="margin-top: 3rem">{writeup.system} · {writeup.difficulty} · {writeup.date}</div>
       <h1 style="margin-top: 8px">{writeup.title}</h1>
-      <p>{writeup.description}</p>
-      <Content />
+      <p >{writeup.description}</p>
+      <Content  />
     </article>
   </div>
 </Layout>

