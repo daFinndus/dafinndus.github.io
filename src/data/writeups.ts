@@ -28,6 +28,15 @@ const makeWriteup = (
 
 export const writeups: Writeup[] = [
   [
+    "twomillion",
+    "TwoMillion",
+    "2026-11-09",
+    "TwoMillion is an easy Linux machine which focuses on command injection and buffer overflows as well as commonly known CVEs.",
+    "Linux",
+    "Easy",
+    ["command injection", "buffer overflow"],
+  ],
+  [
     "dutybound",
     "DutyBound",
     "2026-10-30",

