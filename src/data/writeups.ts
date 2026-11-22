@@ -28,6 +28,15 @@ const makeWriteup = (
 
 export const writeups: Writeup[] = [
   [
+    "doubletake",
+    "DoubleTake",
+    "2026-11-22",
+    "DoubleTake is an easy linux machine focusing on easy CVE exploitation and docker container escape.",
+    "Linux",
+    "Easy",
+    ["docker", "container escape", "sshole", "alpine"],
+  ],
+  [
     "twomillion",
     "TwoMillion",
     "2026-11-09",

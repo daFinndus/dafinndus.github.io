@@ -1,0 +1,241 @@
+import Bild from "../../components/Bild.astro";
+import Code from "../../components/Code.astro";
+import Block from "../../components/Block.astro";
+import Marker from "../../components/Marker.astro";
+
+**Disclaimer**: The steps for this writeup are based on my notes and memory, so they might not be 100% accurate. Additionally, I have changed the flags for this writeup, so they won't match the ones on the machine.
+
+I started with a full TCP port scan and then ran service detection against the discovered ports. This revealed two open ports:
+
+<Block
+  language="Text"
+  content={
+    "22/tcp  - SSH (OpenSSH 10.6)\n" +
+    "80/tcp  - HTTP (nginx 1.24.0)"
+  }
+/>
+
+The web server on port <Code content="80" /> was protected by HTTP Basic Authentication using the realm <Code content="Zentara" />. After opening the website, I was presented with a login form.
+
+
+
+Since I did not have valid credentials at this point, I started enumerating the web server. Fuzzing revealed several interesting paths:
+
+<Block
+  language="Text"
+  content={
+    "/docs\n" +
+    "/files\n" +
+    "/status\n" +
+    "/usage\n" +
+    "/settings\n" +
+    "/agents\n" +
+    "/deploy"
+  }
+/>
+
+All of these endpoints returned <Code content="401 Unauthorized" />, indicating that they were protected by the same authentication mechanism.
+
+I also tried attacking the web login with Hydra, but this did not produce anything useful. Instead, I started looking more closely at the SSH service.
+
+The SSH server was running OpenSSH <Code content="10.6" />. Searching for vulnerabilities affecting this version led me to <Code content="CVE-2026-123158" />, also known as SSHole.
+
+The vulnerability affects certain OpenSSH configurations using <Code content="musl" /> and can allow password authentication to be bypassed under specific conditions. I used a public proof-of-concept to check whether the target was vulnerable.
+
+<Bild
+  src={"/images/writeups/doubletake-sshole.png"}
+  alt={"SSHole requirements"}
+  width={1920}
+  height={1080}
+/>
+
+The PoC requires a sufficiently large password. I generated a 1024-byte value and used it as the SSH password. This successfully authenticated as the user <Code content="alpine" />. After gaining access as <Code content="alpine" />, I started enumerating the home directory.
+
+<Block
+  language="Text"
+  content={
+    ".ash_history\n" +
+    ".mozilla/\n" +
+    "└── firefox/\n" +
+    "    └── zentara.default/\n" +
+    "        ├── cert9.db\n" +
+    "        ├── key4.db\n" +
+    "        ├── logins.json\n" +
+    "        ├── pkcs11.txt\n" +
+    "        ├── prefs.js\n" +
+    "        └── signedInUser.json"
+  }
+/>
+
+The Firefox profile was particularly interesting because it contained a <Code content="logins.json" /> file. Its contents included an encrypted username and password:
+
+<Block
+  language="JSON"
+  content={
+    `{
+  "hostname": "http://172.17.0.1",
+  "httpRealm": "Zentara",
+  "encryptedUsername": "Ym9i",
+  "encryptedPassword": "Q29ycmVjdEhvcnNlQmF0dGVyeVN0YXBsZQ=="
+}`
+  }
+/>
+
+At first, I assumed that the values were Firefox-encrypted credentials and started looking into the accompanying <Code content="key4.db" /> file. However, the values were simply Base64 encoded.
+
+Decoding them revealed valid credentials:
+
+<Block
+  language="Text"
+  content={
+    "Ym9i                                    → bob\n" +
+    "Q29ycmVjdEhvcnNlQmF0dGVyeVN0YXBsZQ==    → CorrectHorseBatteryStaple"
+  }
+/>
+
+These credentials worked for both SSH and the Zentara web application. I could therefore log in as <Code content="bob" /> and retrieve the user flag.
+
+With valid web credentials, I started exploring the Zentara application.
+
+<Bild
+  src={"/images/writeups/doubletake-webpage.png"}
+  alt={"Zentara landing page"}
+  width={1920}
+  height={1080}
+/>
+
+Zentara is an agent management interface that allows users to interact with coding agents. One of the available agents was called <Code content="CodePilot" />. The agent appeared to be capable of creating and managing projects in a workspace.
+
+For example, I found a conversation where CodePilot described creating a FastAPI application under <Code content="/workspace/api-service" />.
+
+This made the application's deployment functionality particularly interesting. I had already discovered the <Code content="/deploy" /> endpoint during enumeration, so I started investigating how archives were uploaded and extracted.
+
+Another conversation provided an important clue:
+
+<Block
+  language="Text"
+  content={
+    "You:\n" +
+    "I deployed the archive but it took a while to extract. Is that expected?\n\n" +
+    "CodePilot:\n" +
+    "If the archive is xz-compressed it takes longer to decompress than gzip. The platform handles decompression server-side before extracting to the workspace. For faster deploys you could switch to gzip, but xz gives better compression ratios for projects with a lot of vendored dependencies."
+  }
+/>
+
+At this point I started investigating the Docker version used by the application.
+
+<Bild
+  src={"/images/writeups/doubletake-status.png"}
+  alt={"Zentara status page showing Docker version and system information"}
+  width={1920}
+  height={1080}
+/>
+
+The status information showed that the system was running Docker Engine <Code content="29.5.0" />. Searching for vulnerabilities affecting this version led me to <Code content="CVE-2026-41567" />.
+
+The vulnerability affected Moby/Docker's handling of compressed archives uploaded to containers. In vulnerable versions, the Docker daemon could resolve decompression binaries such as <Code content="xz" /> from the container filesystem instead of using the corresponding host binary.
+
+This meant that a malicious container filesystem containing a trojanized <Code content="xz" /> binary could potentially achieve code execution with the privileges of the Docker daemon.
+
+The vulnerable operation is exposed through Docker's container archive functionality, for example through:
+
+<Block
+  language="Text"
+  content={
+    "PUT /containers/{id}/archive"
+  }
+/>
+
+The important part of the vulnerability is the order in which Docker handles the compressed archive:
+
+<Block
+  language="Text"
+  content={
+    "compressed archive\n" +
+    "       ↓\n" +
+    "Docker needs xz\n" +
+    "       ↓\n" +
+    "resolves xz from container filesystem\n" +
+    "       ↓\n" +
+    "/usr/bin/xz\n" +
+    "       ↓\n" +
+    "attacker-controlled binary\n" +
+    "       ↓\n" +
+    "code execution with daemon privileges"
+  }
+/>
+
+Since Zentara allowed me to upload archives through the deployment functionality, I investigated whether this vulnerable Docker functionality could be reached through the application.
+
+The first step was to create a replacement for <Code content="/usr/bin/xz" />. The payload was compiled as a native binary and placed into the archive under the following path:
+
+<Block
+  language="Text"
+  content={
+    "pkg/\n" +
+    "└── usr/\n" +
+    "    └── bin/\n" +
+    "        └── xz"
+  }
+/>
+
+I then created an uncompressed tar archive containing the malicious <Code content="xz" /> binary and uploaded it through the Zentara deployment endpoint.
+
+The important part here was that the archive was extracted with <Code content="/" /> as its workspace. This caused the uploaded file to replace:
+
+<Block
+  language="Text"
+  content={
+    "/usr/bin/xz"
+  }
+/>
+
+However, replacing the binary alone was not enough. The malicious <Code content="xz" /> only executes when Docker subsequently needs to decompress an archive.
+
+Therefore, I created a second, xz-compressed archive. Its purpose was not to replace anything, but simply to trigger the vulnerable decompression path.
+
+The archive could be generated with:
+
+<Block
+  language="Bash"
+  content={
+    "echo x > t && echo \"Simple Test\" > test.txt && tar cf - t test.txt | xz > trigger.tar.xz"
+  }
+/>
+
+I uploaded the first archive using the authenticated deployment endpoint:
+
+<Block
+  language="Bash"
+  content={
+    "curl -u bob:CorrectHorseBatteryStaple -F 'archive=@reverse-shell.tar' -F 'workspace=/' http://doubletake.htb/deploy"
+  }
+/>
+
+After the malicious <Code content="xz" /> had been placed in <Code content="/usr/bin/xz" />, I uploaded the compressed trigger archive:
+
+<Block
+  language="Bash"
+  content={
+    "curl -u bob:CorrectHorseBatteryStaple -F 'archive=@trigger.tar.xz' -F 'workspace=/workspace' http://doubletake.htb/deploy"
+  }
+/>
+
+At this point Docker attempted to decompress the archive and resolved <Code content="xz" /> from the container filesystem. This caused the malicious binary to execute with the privileges provided by the vulnerable Docker daemon.
+
+The payload then escaped the container context and established a shell on my attacking machine.
+
+With the resulting privileged shell, I could read the root flag.
+
+<Block
+  language="Bash"
+  content={
+    "cat /root/root.txt"
+  }
+/>
+
+And there was the root flag.
+
+**Always investigate unusual service versions**: The Docker version displayed by the application's status page was directly relevant to the final privilege escalation.
+
+**Application functionality can expose underlying infrastructure vulnerabilities**: Zentara's archive deployment functionality was not itself the Docker vulnerability. It provided a way to reach Docker's vulnerable archive-handling functionality.
